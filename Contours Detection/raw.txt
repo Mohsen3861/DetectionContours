@@ -1,0 +1,386 @@
+//////////////////////////////////////////////////////////////////////
+//
+// OGL32TEX.C
+//  by Blaine Hodge
+//
+
+#include <windows.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <stdio.h>
+
+
+
+// Declarations //////////////////////////////////////////////////////
+
+GLuint LoadTextureRAW( const char * filename, int wrap );
+void FreeTexture( GLuint texture );
+
+LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
+                          WPARAM wParam, LPARAM lParam );
+
+VOID EnableOpenGL( HWND hWnd, HDC * hDC, HGLRC * hRC );
+VOID DisableOpenGL( HWND hWnd, HDC hDC, HGLRC hRC );
+
+struct Image {
+    unsigned long sizeX;
+    unsigned long sizeY;
+    GLubyte *data;
+};
+typedef struct Image Image;
+int ImageLoad(char *filename, Image *image);
+// WinMain ///////////////////////////////////////////////////////////
+
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                    LPSTR lpCmdLine, int iCmdShow )
+{
+  WNDCLASS wc;
+  HWND hWnd;
+  HDC hDC;
+  HGLRC hRC;
+  MSG msg;
+  BOOL bQuit = FALSE;
+
+  GLuint texture;
+
+
+  // register window class
+  wc.style = CS_OWNDC;
+  wc.lpfnWndProc = WndProc;
+  wc.cbClsExtra = 0;
+  wc.cbWndExtra = 0;
+  wc.hInstance = hInstance;
+  wc.hIcon = LoadIcon( NULL, IDI_APPLICATION );
+  wc.hCursor = LoadCursor( NULL, IDC_ARROW );
+  wc.hbrBackground = (HBRUSH)GetStockObject( BLACK_BRUSH );
+  wc.lpszMenuName = NULL;
+  wc.lpszClassName = "GLSample";
+  RegisterClass( &wc );
+  // create main window
+  hWnd = CreateWindow(
+    "GLSample", "OpenGL Texture Sample",
+    WS_CAPTION | WS_POPUPWINDOW | WS_VISIBLE,
+    0, 0, 256, 256,
+    NULL, NULL, hInstance, NULL );
+
+  // enable OpenGL for the window
+  EnableOpenGL( hWnd, &hDC, &hRC );
+Image *image;
+  // load our texture
+  texture = ImageLoad( "ciel.bmp",image);
+  // program main loop
+
+  GLint x,y;
+  x=0;
+  y=0;
+  int gris=0;
+int blanc=0;
+  while ( !bQuit ) {
+
+
+    // check for messages
+    if ( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) ) {
+
+      // handle or dispatch messages
+      if ( msg.message == WM_QUIT ) {
+        bQuit = TRUE;
+      } else {
+        TranslateMessage( &msg );
+        DispatchMessage( &msg );
+      }
+
+    } else {
+
+
+      // OpenGL animation code goes here
+
+     // glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+     // glClear( GL_COLOR_BUFFER_BIT );
+
+      // setup texture mapping
+
+      glEnable( GL_TEXTURE_2D );
+     glBindTexture( GL_TEXTURE_2D, texture );
+
+      glPushMatrix();
+      glRotatef( 0.0f, 0.0f, 0.0f, 1.0f );
+      glBegin( GL_QUADS );
+      glTexCoord2d(0.0,0.0); glVertex2d(-1.0,-1.0);
+      glTexCoord2d(1.0,0.0); glVertex2d(+1.0,-1.0);
+      glTexCoord2d(1.0,1.0); glVertex2d(+1.0,+1.0);
+      glTexCoord2d(0.0,1.0); glVertex2d(-1.0,+1.0);
+ glEnd();
+      glPopMatrix();
+
+ unsigned char pixel[3];
+
+glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixel);
+    if(pixel[0]!=113 &&pixel[1]!=113 && pixel[2]!=113){
+    pixel[0]=0;
+    pixel[1]=0;
+    pixel[2]=0;
+
+glDrawPixels(x+1,y+1,GL_RGB,GL_UNSIGNED_BYTE,&pixel);
+
+    }
+
+
+
+SwapBuffers( hDC );
+
+
+      //theta += 1.0f;
+
+    }
+  }
+
+
+   printf(" blancs = %d   gris = %d",blanc,gris);
+    printf(" \n ");
+  // free the texture
+  FreeTexture( texture );
+
+  // shutdown OpenGL
+  DisableOpenGL( hWnd, hDC, hRC );
+
+  // destroy the window explicitly
+  DestroyWindow( hWnd );
+
+  return msg.wParam;
+
+}
+
+
+
+// Texture ///////////////////////////////////////////////////////////
+
+// load a 256x256 RGB .RAW file as a texture
+int
+ImageLoad(char *filename, Image *image) {
+    FILE *file;
+    unsigned long size;
+    unsigned long i;
+    unsigned short int planes;
+    unsigned short int bpp;
+    GLubyte temp;
+
+    struct {
+      unsigned short int type;                 /* Magic identifier            */
+      unsigned int size;                       /* File size in bytes          */
+      unsigned short int reserved1, reserved2;
+      unsigned int offset;                     /* Offset to image data, bytes */
+    } header;
+
+    struct {
+      unsigned int size;               /* Header size in bytes      */
+      int width,height;                /* Width and height of image */
+      unsigned short int planes;       /* Number of colour planes   */
+      unsigned short int bits;         /* Bits per pixel            */
+      unsigned int compression;        /* Compression type          */
+      unsigned int imagesize;          /* Image size in bytes       */
+      int xresolution,yresolution;     /* Pixels per meter          */
+      unsigned int ncolours;           /* Number of colours         */
+      unsigned int importantcolours;   /* Important colours         */
+    } infoheader;
+
+
+
+    if ((file = fopen(filename, "rb"))==NULL) {
+      printf("File Not Found : %s\n",filename);
+      return -1;
+    }
+
+    fread(&header, 14, 1, file);
+    fread(&infoheader, 40, 1, file);
+
+    fseek(file, 18, SEEK_SET);
+
+    if ((i = fread(&image->sizeX, 4, 1, file)) != 1) {
+      printf("Error reading width from %s.\n", filename);
+      return -1;
+    }
+
+    if ((i = fread(&image->sizeY, 4, 1, file)) != 1) {
+      printf("Error reading height from %s.\n", filename);
+      return -1;
+    }
+
+    size = image->sizeX * image->sizeY * 3;
+
+    if ((fread(&planes, 2, 1, file)) != 1) {
+      printf("Error reading planes from %s.\n", filename);
+      return -1;
+    }
+
+    if (planes != 1) {
+      printf("Planes from %s is not 1: %u\n", filename, planes);
+      return -1;
+    }
+    if ((i = fread(&bpp, 2, 1, file)) != 1) {
+      printf("Error reading bpp from %s.\n", filename);
+      return -1;
+    }
+    if (bpp != 24) {
+      printf("Bpp from %s is not 24: %u\n", filename, bpp);
+      return -1;
+    }
+    fseek(file, 24, SEEK_CUR);
+    image->data = (GLubyte *) malloc(size);
+    if (image->data == NULL) {
+      printf("Error allocating memory for color-corrected image data");
+      return -1;
+    }
+
+    if ((i = fread(image->data, size, 1, file)) != 1) {
+      printf("Error reading image data from %s.\n", filename);
+      return -1;
+    }
+
+    for (i=0;i<size;i+=3) {
+      temp = image->data[i];
+      image->data[i] = image->data[i+2];
+      image->data[i+2] = temp;
+    }
+    fclose(file);
+    return 0;
+}
+
+
+GLuint LoadTextureRAW( const char * filename, int wrap )
+{
+  GLuint texture;
+  int width, height;
+  BYTE * data;
+  FILE * file;
+
+  // open texture data
+  file = fopen( filename, "rb" );
+  if ( file == NULL ) return 0;
+
+  // allocate buffer
+  width = 256;
+  height = 256;
+  data = malloc( width * height * 3 );
+
+  // read texture data
+  fread( data, width * height * 3, 1, file );
+  fclose( file );
+
+  // allocate a texture name
+  glGenTextures( 1, &texture );
+
+  // select our current texture
+  glBindTexture( GL_TEXTURE_2D, texture );
+
+  // select modulate to mix texture with color for shading
+  glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+  // when texture area is small, bilinear filter the closest MIP map
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                   GL_LINEAR_MIPMAP_NEAREST );
+  // when texture area is large, bilinear filter the first MIP map
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+  // if wrap is true, the texture wraps over at the edges (repeat)
+  //       ... false, the texture ends at the edges (clamp)
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                   wrap ? GL_REPEAT : GL_CLAMP );
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                   wrap ? GL_REPEAT : GL_CLAMP );
+
+  // build our texture MIP maps
+  gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width,
+    height, GL_RGB, GL_UNSIGNED_BYTE, data );
+
+  // free buffer
+  free( data );
+
+  return texture;
+
+}
+
+void FreeTexture( GLuint texture )
+{
+
+  glDeleteTextures( 1, &texture );
+
+}
+
+
+
+// Window Proc ///////////////////////////////////////////////////////
+
+LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
+                          WPARAM wParam, LPARAM lParam )
+{
+
+  switch ( message ) {
+
+  case WM_CREATE:
+    return 0;
+
+  case WM_CLOSE:
+    PostQuitMessage( 0 );
+    return 0;
+
+  case WM_DESTROY:
+    return 0;
+
+  case WM_KEYDOWN:
+    switch ( wParam ) {
+
+    case VK_ESCAPE:
+      PostQuitMessage( 0 );
+      return 0;
+
+    }
+    return 0;
+
+  default:
+    return DefWindowProc( hWnd,
+      message, wParam, lParam );
+
+  }
+
+}
+
+
+// OpenGL ////////////////////////////////////////////////////////////
+
+// Enable OpenGL
+
+VOID EnableOpenGL( HWND hWnd, HDC * hDC, HGLRC * hRC )
+{
+  PIXELFORMATDESCRIPTOR pfd;
+  int iFormat;
+
+  // get the device context (DC)
+  *hDC = GetDC( hWnd );
+
+  // set the pixel format for the DC
+  ZeroMemory( &pfd, sizeof( pfd ) );
+  pfd.nSize = sizeof( pfd );
+  pfd.nVersion = 1;
+  pfd.dwFlags = PFD_DRAW_TO_WINDOW |
+    PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+  pfd.iPixelType = PFD_TYPE_RGBA;
+  pfd.cColorBits = 24;
+  pfd.cDepthBits = 16;
+  pfd.iLayerType = PFD_MAIN_PLANE;
+  iFormat = ChoosePixelFormat( *hDC, &pfd );
+  SetPixelFormat( *hDC, iFormat, &pfd );
+
+  // create and enable the render context (RC)
+  *hRC = wglCreateContext( *hDC );
+  wglMakeCurrent( *hDC, *hRC );
+
+}
+
+// Disable OpenGL
+
+VOID DisableOpenGL( HWND hWnd, HDC hDC, HGLRC hRC )
+{
+  wglMakeCurrent( NULL, NULL );
+  wglDeleteContext( hRC );
+  ReleaseDC( hWnd, hDC );
+}

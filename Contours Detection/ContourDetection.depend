@@ -1,0 +1,50 @@
+# depslib dependency file v1.0
+1423610982 source:c:\users\mohsen raeisi\documents\github\contours detection\calcul.c
+	"bmp.h"
+	"calcul.h"
+
+1387915997 c:\users\mohsen raeisi\documents\github\contours detection\bmp.h
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<GL/gl.h>
+	<GL/glu.h>
+	<glut.h>
+	<windows.h>
+	<stdio.h>
+	<unistd.h>
+	<string.h>
+	<math.h>
+
+1387916168 c:\users\mohsen raeisi\documents\github\contours detection\calcul.h
+	<GL/gl.h>
+	<GL/glu.h>
+	<glut.h>
+	<windows.h>
+	<stdio.h>
+	<unistd.h>
+	<string.h>
+	<math.h>
+
+1387826637 source:c:\users\mohsen raeisi\documents\github\contours detection\main.c
+	<GL/gl.h>
+	<GL/glu.h>
+	<glut.h>
+	<windows.h>
+	<stdio.h>
+	<unistd.h>
+	<string.h>
+	<math.h>
+	"bmp.h"
+
+1387826637 source:c:\users\mohsen raeisi\documents\github\contours detection\bmp.c
+	<GL/gl.h>
+	<GL/glu.h>
+	<glut.h>
+	<windows.h>
+	<stdio.h>
+	<unistd.h>
+	<string.h>
+	<math.h>
+	"bmp.h"
+
